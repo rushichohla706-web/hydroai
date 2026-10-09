@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HydroAI · Command Center · SIH26071</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/command-center.css') }}">
+  <base target="_blank">
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <div class="vignette"></div>
+  <div id="flash"></div>
+  <div class="view-label" id="viewLabel">🛰 Satellite View</div>
+  <main>
+    <nav>
+      <div class="logo"><span class="drop">💧</span> HydroAI</div>
+      <div class="nav-links">
+        <a href="#system">System</a><a href="#risk">Risk Zones</a><a href="#lab">Weather Lab</a>
+        <a href="#models">AI Engine</a><a href="#architecture">Pipeline</a><a href="#roadmap">Roadmap</a>
+      </div>
+      <span class="badge">SIH26071 · MoES</span>
+    </nav>
+    <header class="hero" id="system">
+      <span class="hero-tag"><span class="pulse"></span> SMART INDIA HACKATHON 2026 — DISASTER MANAGEMENT · PROTOTYPE</span>
+      <h1>AI-Based <span class="grad">Heavy Rainfall Early Warning</span> &amp; Inundation Prediction System</h1>
+      <div class="dash-row">
+        <div class="dcard glass"><span class="lbl cyan">DETECTION SKILL</span><b><span class="count" data-to="89.4" data-dec="1">0</span>%</b><span>Heavy rainfall detection (target)</span></div>
+        <div class="dcard glass"><span class="lbl cyan">INFERENCE</span><b><span class="count" data-to="15" data-dec="0">0</span> min</b><span>Model update interval (target)</span></div>
+        <div class="dcard glass"><span class="lbl cyan">LEAD TIME</span><b><span class="count" data-to="6" data-dec="0">0</span> hrs</b><span>Actionable warning window (target)</span></div>
+        <div class="dcard glass"><span class="lbl red">ALERTS</span><b><span class="count" data-to="3" data-dec="0">0</span> tier</b><span>Red / Orange / Green</span></div>
+      </div>
+      <div class="scroll-hint">Scroll · Satellite → Radar → Rainfall → Flooded City</div>
+    </header>
+    <div class="ticker"><div class="ticker-inner" id="ticker">
+      <span>🛰 <b>INSAT-3D</b> proposed feed</span><span>📡 <b>DWR</b> proposed radar grid</span>
+      <span>🌡 <b>AWS</b> proposed station network</span><span>🤖 <b>ConvLSTM</b> proposed nowcast horizon +180 min</span>
+      <span>⚠ <b>DEMO</b> RED ALERT sample · simulated</span><span>🟠 <b>DEMO</b> ORANGE ALERT sample · simulated</span>
+      <span>💧 <b>Flood depth</b> prototype simulation</span><span>📲 <b>SMS gateway</b> · proposed, not connected</span>
+    </div></div>
+    <section>
+      <span class="kicker">Problem Statement · SIH26071</span>
+      <h2>Extreme Rainfall Is Outpacing Forecasts</h2>
+      <div class="grid3">
+        <div class="card glass"><div class="icon">⛈️</div><h3>Localized Cloudburst Dynamics</h3></div>
+        <div class="card glass"><div class="icon">🏙️</div><h3>Urban Drainage Bottlenecks</h3></div>
+        <div class="card glass"><div class="icon">⏱️</div><h3>Warning Lead-Time Deficit</h3></div>
+      </div>
+    </section>
+    <section id="risk">
+      <span class="kicker">Inundation Modeling</span>
+      <h2>Animated Flood-Risk Zones on the Globe</h2>
+      <div class="risk">
+        <div class="rc red"><span class="pill">RED · HIGH RISK</span><h3>Critical Inundation Zone</h3><div class="bar"><i></i></div></div>
+        <div class="rc amber"><span class="pill">ORANGE · MEDIUM</span><h3>Watch Inundation Zone</h3><div class="bar"><i></i></div></div>
+        <div class="rc green"><span class="pill">GREEN · SAFE</span><h3>Low Risk Zone</h3><div class="bar"><i></i></div></div>
+      </div>
+    </section>
+    <section id="lab">
+      <span class="kicker">Live Weather Lab · Real Data</span>
+      <h2>Type Any Location. Get the Risk Verdict.</h2>
+      <div class="lab">
+        <div class="lab-panel glass">
+          <h3 style="font-size:1rem">📍 Location Risk Checker</h3>
+          <div class="search-row">
+            <input type="text" id="locInput" placeholder="e.g. Mumbai, Delhi, Chennai…" />
+            <button class="btn primary" id="goBtn" onclick="checkLocation()">Check Risk</button>
+          </div>
+          <div class="wx-err" id="wxErr"></div>
+          <div class="wx-result" id="wxResult">
+            <div class="wx-main">
+              <div class="wx-temp" id="wxTemp">--°</div>
+              <div><div style="font-weight:700" id="wxCity">—</div><div class="wx-meta" id="wxMeta">—</div></div>
+            </div>
+            <div class="risk-verdict green" id="wxVerdict">—</div>
+            <ul class="advice" id="wxAdvice"></ul>
+            <div style="margin-top:14px;font-size:.72rem;color:var(--mut)">Hourly precipitation probability — next 24h</div>
+            <canvas id="wxchart" width="520" height="150"></canvas>
+          </div>
+        </div>
+        <div class="lab-panel glass">
+          <h3 style="font-size:1rem">🤖 How the verdict is computed</h3>
+          <div class="term" style="margin-top:14px">
+            <div class="term-bar"><span class="dot" style="background:#ef4444"></span><span class="dot" style="background:#f59e0b"></span><span class="dot" style="background:#22c55e"></span><span style="margin-left:10px;color:var(--mut);font-size:.72rem;font-family:monospace">hydroai://risk-engine</span></div>
+            <div class="term-body" id="riskTerm"><span class="t-mut">Awaiting location input…</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+    <section id="models">
+      <span class="kicker">AI/ML Core Engine · Proposed</span>
+      <h2>Three Models, One Nowcast</h2>
+      <div class="grid3">
+        <div class="card glass"><span style="font-size:.7rem;font-weight:800;color:var(--blue);letter-spacing:2px">MODEL 01</span><h3 style="margin-top:6px">ConvLSTM Spatiotemporal</h3></div>
+        <div class="card glass"><span style="font-size:.7rem;font-weight:800;color:var(--blue);letter-spacing:2px">MODEL 02</span><h3 style="margin-top:6px">XGBoost / Random Forest</h3></div>
+        <div class="card glass"><span style="font-size:.7rem;font-weight:800;color:var(--blue);letter-spacing:2px">MODEL 03</span><h3 style="margin-top:6px">Cloudburst Anomaly Detector</h3></div>
+      </div>
+    </section>
+    <section id="architecture">
+      <span class="kicker">System Architecture</span>
+      <h2>End-to-End Operational Pipeline</h2>
+      <div class="arch">
+        <div class="stage glass"><span class="num">STAGE 01</span><h4>Data Ingestion</h4></div>
+        <div class="stage glass"><span class="num">STAGE 02</span><h4>Multi-Source Fusion</h4></div>
+        <div class="stage glass"><span class="num">STAGE 03</span><h4>AI Rainfall Nowcast</h4></div>
+        <div class="stage glass"><span class="num">STAGE 04</span><h4>Inundation Hydro</h4></div>
+        <div class="stage glass"><span class="num">STAGE 05</span><h4>Alert Dissemination</h4></div>
+      </div>
+      <div class="grid3" style="margin-top:20px">
+        <div class="card glass"><div class="icon">🗺️</div><h3>Live GIS Radar Overlay</h3></div>
+        <div class="card glass"><div class="icon">📲</div><h3>Automated Alert Trigger</h3></div>
+        <div class="card glass"><div class="icon">🚑</div><h3>Evacuation Route Planner</h3></div>
+      </div>
+    </section>
+    <section id="roadmap">
+      <span class="kicker">Future Scaling & Vision</span>
+      <h2>Roadmap</h2>
+      <div class="timeline">
+        <div class="t-item"><span class="when">PHASE 01</span><h4>IoT Water Level Mesh</h4></div>
+        <div class="t-item"><span class="when">PHASE 02</span><h4>Smart City API Layer</h4></div>
+        <div class="t-item"><span class="when">PHASE 03</span><h4>Citizen Crowdsourcing</h4></div>
+      </div>
+    </section>
+    <div class="cta-final">
+      <span class="kicker">SIH 2026 · MoES Vision</span>
+      <h2>“Predict Early. <span class="grad">Warn Early.</span> Act Early.”</h2>
+      <a class="btn primary" href="#lab" target="_self">Try the Weather Lab</a>
+    </div>
+    <footer>
+      <span>💧 Team HydroAI — SIH26071</span>
+      <span>Ministry of Earth Sciences · Disaster Management Theme (prototype, not officially affiliated)</span>
+      <span>Live data: Open-Meteo API · 3D: Three.js · Map: OpenStreetMap</span>
+    </footer>
+  </main>
+  <div id="capt"></div>
+  <script src="{{ url_for('static', filename='js/scene.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/command-center.js') }}"></script>
+</body>
+</html>
